@@ -1,0 +1,9 @@
+customer_id,name,email,age,city
+1,Rajan,rajan@gmail.com,21,Coimbatore
+2,Arun,arun@gmail.com,22,Chennai
+3,Kumar,,25,Madurai
+4,Divya,divya@gmail.com,24,Coimbatore
+5,Arun,arun@gmail.com,22,Chennai
+6,John,john@gmail.com,abc,Chennai
+7,Meena,meena@gmail.com,27,
+8,Suresh,suresh@gmail.com,30,Chennai

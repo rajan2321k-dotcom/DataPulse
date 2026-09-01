@@ -1,0 +1,5 @@
+id,name,email,age,phone
+1,Rajan,rajan@gmail.com,22,9876543210
+2,,wrong-email,abc,98765
+3,Kumar,kumar@gmail.com,,9876543210
+4,Ravi,ravi@gmail.com,25,
