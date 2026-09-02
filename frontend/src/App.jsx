@@ -4,7 +4,6 @@ import "./App.css";
 import CsvCleaner from "./CsvCleaner";
 
 const API = "https://datapulse-backend-kedv.onrender.com";
-
 function App() {
   const [pipelines, setPipelines] = useState([]);
   const [error, setError] = useState("");
