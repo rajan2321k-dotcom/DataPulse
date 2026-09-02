@@ -1,7 +1,8 @@
-import { useState } from "react";
+
+import React, { useState } from "react";
 import axios from "axios";
 
-const API = "https://datapulse-backend-kedv.onrender.com/csv/clean";
+const API = "https://datapulse-backend-kedv.onrender.com";
 
 function CsvCleaner() {
   const [file, setFile] = useState(null);
@@ -9,17 +10,37 @@ function CsvCleaner() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
-  const cleanCsv = async () => {
-    if (!file) {
-      alert("Please select a CSV file");
+  const handleFileChange = (event) => {
+    const selectedFile = event.target.files[0];
+
+    setResult(null);
+    setError("");
+
+    if (!selectedFile) {
+      setFile(null);
       return;
     }
 
-    try {
-      setLoading(true);
-      setError("");
-      setResult(null);
+    if (!selectedFile.name.toLowerCase().endsWith(".csv")) {
+      setError("Please select a CSV file.");
+      setFile(null);
+      return;
+    }
 
+    setFile(selectedFile);
+  };
+
+  const cleanCsv = async () => {
+    if (!file) {
+      setError("Please select a CSV file first.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    try {
       const formData = new FormData();
       formData.append("file", file);
 
@@ -28,175 +49,127 @@ function CsvCleaner() {
         formData
       );
 
-      console.log("CSV Clean Result:", response.data);
-
       setResult(response.data);
     } catch (err) {
       console.error("CSV cleaning error:", err);
 
-      setError(
-        err.response?.data?.detail ||
-        "Failed to clean CSV file"
-      );
+      if (err.response) {
+        setError(
+          err.response.data?.detail ||
+            err.response.data?.message ||
+            `Server error: ${err.response.status}`
+        );
+      } else if (err.request) {
+        setError(
+          "Unable to connect to the backend server. Please try again."
+        );
+      } else {
+        setError("Failed to clean CSV file.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const downloadCsv = () => {
+  const downloadCleanedFile = () => {
     if (!result?.download_url) {
       return;
     }
 
-    window.open(
-      `${API}${result.download_url}`,
-      "_blank"
-    );
+    const downloadUrl = result.download_url.startsWith("http")
+      ? result.download_url
+      : `${API}${result.download_url}`;
+
+    window.open(downloadUrl, "_blank");
   };
 
   return (
-    <section className="csv-cleaner">
-
-      <div className="csv-header">
-        <div>
-          <h2>CSV Cleaner</h2>
-          <p>
-            Upload your CSV file and automatically
-            clean missing and invalid data.
-          </p>
-        </div>
+    <div className="csv-cleaner">
+      <div className="csv-cleaner-header">
+        <h2>CSV Cleaner</h2>
+        <p>
+          Upload your CSV file and automatically clean missing and
+          invalid values.
+        </p>
       </div>
 
-      <div className="csv-upload-card">
+      <div className="csv-upload-box">
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          onChange={handleFileChange}
+        />
 
-        <div className="upload-area">
-
-          <div className="upload-icon">
-            📄
+        {file && (
+          <div className="selected-file">
+            <strong>Selected file:</strong> {file.name}
           </div>
-
-          <h3>
-            Upload CSV File
-          </h3>
-
-          <p>
-            Select a CSV file from your computer
-          </p>
-
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => {
-              setFile(e.target.files[0]);
-              setResult(null);
-              setError("");
-            }}
-          />
-
-          {file && (
-            <div className="selected-file">
-              <strong>
-                Selected:
-              </strong>{" "}
-              {file.name}
-            </div>
-          )}
-
-        </div>
+        )}
 
         <button
-          className="clean-button"
+          type="button"
           onClick={cleanCsv}
-          disabled={loading || !file}
+          disabled={!file || loading}
         >
-          {loading
-            ? "Cleaning..."
-            : "Clean CSV"}
+          {loading ? "Cleaning CSV..." : "Clean CSV"}
         </button>
-
       </div>
 
       {error && (
         <div className="csv-error">
-          {error}
+          <strong>Error:</strong> {error}
         </div>
       )}
 
-      {result && (
+      {result && result.success && (
         <div className="csv-result">
+          <h3>CSV Cleaned Successfully ✅</h3>
 
-          <div className="result-header">
-            <div>
-              <h3>
-                Cleaning Completed
-              </h3>
+          <p>{result.message}</p>
 
-              <p>
-                {result.filename}
-              </p>
+          {result.statistics && (
+            <div className="csv-statistics">
+              <div className="stat-card">
+                <span>Original Records</span>
+                <strong>
+                  {result.statistics.original_records}
+                </strong>
+              </div>
+
+              <div className="stat-card">
+                <span>Cleaned Records</span>
+                <strong>
+                  {result.statistics.cleaned_records}
+                </strong>
+              </div>
+
+              <div className="stat-card">
+                <span>Missing Values</span>
+                <strong>
+                  {result.statistics.missing_values}
+                </strong>
+              </div>
+
+              <div className="stat-card">
+                <span>Invalid Values</span>
+                <strong>
+                  {result.statistics.invalid_values}
+                </strong>
+              </div>
             </div>
-
-            <span className="success-badge">
-              SUCCESS
-            </span>
-          </div>
-
-          <div className="csv-stats">
-
-            <div className="csv-stat">
-              <span>
-                Original Records
-              </span>
-
-              <strong>
-                {result.statistics?.original_records || 0}
-              </strong>
-            </div>
-
-            <div className="csv-stat">
-              <span>
-                Cleaned Records
-              </span>
-
-              <strong>
-                {result.statistics?.cleaned_records || 0}
-              </strong>
-            </div>
-
-            <div className="csv-stat">
-              <span>
-                Missing Values
-              </span>
-
-              <strong>
-                {result.statistics?.missing_values || 0}
-              </strong>
-            </div>
-
-            <div className="csv-stat">
-              <span>
-                Invalid Values
-              </span>
-
-              <strong>
-                {result.statistics?.invalid_values || 0}
-              </strong>
-            </div>
-
-          </div>
+          )}
 
           <button
-            className="download-button"
-            onClick={downloadCsv}
+            type="button"
+            onClick={downloadCleanedFile}
           >
             Download Cleaned CSV
           </button>
-
         </div>
       )}
-
-    </section>
+    </div>
   );
 }
 
 export default CsvCleaner;
+
