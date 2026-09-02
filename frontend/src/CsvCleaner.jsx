@@ -10,6 +10,7 @@ function CsvCleaner() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
+  // Select CSV file
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
 
@@ -21,8 +22,9 @@ function CsvCleaner() {
       return;
     }
 
+    // Check CSV extension
     if (!selectedFile.name.toLowerCase().endsWith(".csv")) {
-      setError("Please select a CSV file.");
+      setError("Please select a valid CSV file.");
       setFile(null);
       return;
     }
@@ -30,6 +32,7 @@ function CsvCleaner() {
     setFile(selectedFile);
   };
 
+  // Clean CSV
   const cleanCsv = async () => {
     if (!file) {
       setError("Please select a CSV file first.");
@@ -42,12 +45,20 @@ function CsvCleaner() {
 
     try {
       const formData = new FormData();
+
       formData.append("file", file);
 
       const response = await axios.post(
         `${API}/csv/clean`,
-        formData
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
+
+      console.log("CSV cleaning response:", response.data);
 
       setResult(response.data);
     } catch (err) {
@@ -61,7 +72,7 @@ function CsvCleaner() {
         );
       } else if (err.request) {
         setError(
-          "Unable to connect to the backend server. Please try again."
+          "Unable to connect to the DataPulse backend server."
         );
       } else {
         setError("Failed to clean CSV file.");
@@ -71,14 +82,21 @@ function CsvCleaner() {
     }
   };
 
+  // Download cleaned CSV
   const downloadCleanedFile = () => {
     if (!result?.download_url) {
+      setError("Cleaned file download URL is not available.");
       return;
     }
 
-    const downloadUrl = result.download_url.startsWith("http")
-      ? result.download_url
-      : `${API}${result.download_url}`;
+    let downloadUrl = result.download_url;
+
+    // If backend returns a relative URL
+    if (!downloadUrl.startsWith("http")) {
+      downloadUrl = `${API}${downloadUrl}`;
+    }
+
+    console.log("Download URL:", downloadUrl);
 
     window.open(downloadUrl, "_blank");
   };
@@ -87,12 +105,14 @@ function CsvCleaner() {
     <div className="csv-cleaner">
       <div className="csv-cleaner-header">
         <h2>CSV Cleaner</h2>
+
         <p>
-          Upload your CSV file and automatically clean missing and
-          invalid values.
+          Upload your CSV file and automatically clean
+          missing and invalid values.
         </p>
       </div>
 
+      {/* Upload Section */}
       <div className="csv-upload-box">
         <input
           type="file"
@@ -102,7 +122,8 @@ function CsvCleaner() {
 
         {file && (
           <div className="selected-file">
-            <strong>Selected file:</strong> {file.name}
+            <strong>Selected File:</strong>{" "}
+            {file.name}
           </div>
         )}
 
@@ -115,20 +136,24 @@ function CsvCleaner() {
         </button>
       </div>
 
+      {/* Error */}
       {error && (
         <div className="csv-error">
           <strong>Error:</strong> {error}
         </div>
       )}
 
+      {/* Success Result */}
       {result && result.success && (
         <div className="csv-result">
           <h3>CSV Cleaned Successfully ✅</h3>
 
           <p>{result.message}</p>
 
+          {/* Statistics */}
           {result.statistics && (
             <div className="csv-statistics">
+
               <div className="stat-card">
                 <span>Original Records</span>
                 <strong>
@@ -156,9 +181,11 @@ function CsvCleaner() {
                   {result.statistics.invalid_values}
                 </strong>
               </div>
+
             </div>
           )}
 
+          {/* Download */}
           <button
             type="button"
             onClick={downloadCleanedFile}
